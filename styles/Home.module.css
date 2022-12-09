@@ -127,3 +127,8 @@
     filter: invert(1);
   }
 }
+
+#main {
+  position: relative;
+  height: 100vh;
+}
