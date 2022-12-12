@@ -7,7 +7,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         args: youtubeId,
         scriptPath: '/Users/chenweijie/Desktop/englishpracticesite/helper',
     }
-    PythonShell.run('getsubfromyt.py', options, function (err, results) {
+    PythonShell.run('getsubfromyt.py', options, function (err: any, results: any[]) {
         if (err) throw err;
         res.json(results[0])
     })

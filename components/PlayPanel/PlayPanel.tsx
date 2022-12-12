@@ -1,13 +1,13 @@
 import React, { ReactElement, useState, useEffect, useRef } from "react"
 import ReactPlayer from 'react-player/youtube'
-import { Play, Pause, SkipBack, SkipForward } from 'react-feather'
-
+import { SkipBack, SkipForward, Repeat } from 'react-feather'
+import TestPanel from "../TestPanel/TestPanel"
+import TypingPanel from "../TestPanel/TypingPanel"
 interface IMyProps{
     ytURL: string
 }
-
-type ICaptionArr = Array<Caption>
-class Caption{
+type ICaptionArr = Array<CaptionObj>
+class CaptionObj{
     'text': string
     'start': number
     'duration': number
@@ -16,15 +16,17 @@ class Caption{
 const PlayPanel = (props: IMyProps): ReactElement => {
     
     const [caption, setCaption] = useState([{text:"",start:0,duration:0}])
-    const [playing, setPlaying ] = useState(true)
+    const [playing, setPlaying ] = useState(false)
     const [currentCaptionIndex, setCurrentCaptionIndex] = useState(0)
+    const [testMode, setTestMode] = useState(true)
+    //只要切換就是要repeat，並不是開啟或關閉repeat
+    const [repeat, setRepeat] = useState(true)
 
     const ref = React.useRef<ReactPlayer>(null)
 
-    function switchPlaying(){
-        setPlaying(!playing)
+    function switchRepeat(){
+        setRepeat(!repeat)
     }
-    
     
     const mounted = useRef(false)
     useEffect(()=>{
@@ -83,6 +85,7 @@ const PlayPanel = (props: IMyProps): ReactElement => {
     useEffect(()=>{
         let timer: ReturnType<typeof setTimeout>;
         if(caption){
+            setPlaying(true)
             //控制影片在特定時間開始並播放特定一段時間後停止
             ref.current?.seekTo(caption[currentCaptionIndex].start)
 
@@ -96,42 +99,43 @@ const PlayPanel = (props: IMyProps): ReactElement => {
             //當currentCaptionIndex之前要清掉timer，不然會下一個會被上一個timer影響
             clearTimeout(timer);
         }
-    },[currentCaptionIndex])
+    },[currentCaptionIndex,caption,repeat])
 
     return (
         <>
             <div className="fixed top-0 left-0 right-0 bottom-0 grid content-center justify-center">
-                <div className="flex items-center w-full">
-                    {/* <YouTube videoId={props.ytURL.split("v=")[1]} opts={opts} onReady={onPlayerReady} style={{display: "inline-block", margin: "auto"}} /> */}
+                <div style={{width:"640px"}}>                   
                     <ReactPlayer url={props.ytURL} playing={playing} ref={ref}/>
-                </div>
-                <div id="controlBar" className="flex justify-evenly my-3">
-                    <div>
-                        <SkipBack onClick={
-                            ()=>{
-                                if(currentCaptionIndex>0){
-                                    setPlaying(true)
-                                    setCurrentCaptionIndex(currentCaptionIndex-1)
+                    <div id="controlBar" className="flex justify-evenly my-3">
+                        <div>
+                            <SkipBack onClick={
+                                ()=>{
+                                    if(currentCaptionIndex>0){
+                                        setPlaying(true)
+                                        setCurrentCaptionIndex(currentCaptionIndex-1)
+                                    }
                                 }
+                            }/>
+                        </div>
+                        <div>
+                            {
+                                <Repeat onClick={()=>{switchRepeat()}} className="w-10/12"/>
                             }
-                        }/>
+                        </div>
+                        <div>
+                            <SkipForward onClick={()=>{
+                                if(currentCaptionIndex<caption.length-1){
+                                    setPlaying(true)
+                                    setCurrentCaptionIndex(currentCaptionIndex+1)
+                                }
+                            }}/>
+                        </div>
                     </div>
-                    <div>
+                    <div id="typingArea">
                         {
-                            playing ? <Pause onClick={switchPlaying}/> : <Play onClick={switchPlaying}/>
+                            testMode ? <TypingPanel captionText={caption[currentCaptionIndex].text}/> : <TestPanel captionText={caption[currentCaptionIndex].text}/>
                         }
                     </div>
-                    <div>
-                        <SkipForward onClick={()=>{
-                            if(currentCaptionIndex<caption.length-1){
-                                setPlaying(true)
-                                setCurrentCaptionIndex(currentCaptionIndex+1)
-                            }
-                        }}/>
-                    </div>
-                </div>
-                <div id="typingArea">
-                    { caption[currentCaptionIndex].text }
                 </div>
             </div>
         </>
