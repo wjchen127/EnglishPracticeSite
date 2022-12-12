@@ -2,6 +2,8 @@ import React, { ReactElement, useEffect, useRef, useState } from "react"
 
 interface IMyProps{
     captionText: string
+    replayFunc: ()=>void
+    captionIndex: number
 }
 
 const TypingPanel = (props: IMyProps): ReactElement => {
@@ -10,9 +12,6 @@ const TypingPanel = (props: IMyProps): ReactElement => {
     const [inputArr, setInputArr] = useState<Array<string>>()
     useEffect(()=>{
         setInputArr(()=>props.captionText.split(" "))
-        return ()=>{
-            setInputArr([""])
-        }
     },[props.captionText])
     //記得要取得input的數量
     function handleChange(e: React.ChangeEvent<HTMLInputElement>){
@@ -20,7 +19,7 @@ const TypingPanel = (props: IMyProps): ReactElement => {
         const index = parseInt((currentTarget.dataset.index as string))
         
         //可以偷懶不打標點符號，所以在比對正確性時會把符號去掉再比對
-        const correct = currentTarget.dataset.answer ? currentTarget.dataset.answer.toLowerCase().replace(/[^a-z]/gi, '') === currentTarget.value.toLowerCase().replace(/[^a-z]/gi, '') : false
+        const correct = currentTarget.dataset.answer ? currentTarget.dataset.answer.toLowerCase().replace(/[^a-z0-9]/gi, '') === currentTarget.value.toLowerCase().replace(/[^a-z0-9]/gi, '') : false
         
         //字數達到input上限，開始檢查輸入內容是否錯誤
         if(correct || (currentTarget.dataset.answer && currentTarget.dataset.answer.length === currentTarget.value.length)){
@@ -40,6 +39,7 @@ const TypingPanel = (props: IMyProps): ReactElement => {
             }else{
                 //輸入錯誤紅色底線
                 inputsRef.current[index].classList.add("border-red-500")
+                props.replayFunc()
             }
             
         }else{
@@ -57,7 +57,7 @@ const TypingPanel = (props: IMyProps): ReactElement => {
 
     //input只允許使用a-z "," "." "'"
     function handleOnInput(e: React.FormEvent<HTMLInputElement>){
-        e.currentTarget.value = e.currentTarget.value.replace(/[^a-z,.*,'*,\,*]/gi, '')
+        e.currentTarget.value = e.currentTarget.value.replace(/[^a-z0-9,.*,'*,\,*\-*]/gi, '')
     }
 
     function handleBackSpace(e: React.KeyboardEvent<HTMLInputElement>){
@@ -74,10 +74,10 @@ const TypingPanel = (props: IMyProps): ReactElement => {
 
     return (
         <>
-            <div className="flex flex-wrap">
+            <div className="flex flex-wrap px-2">
                 {
                     inputArr ? inputArr.map((word,i)=>{
-                        return <input key={word+i} type="text" maxLength={word.length} data-index={i} data-oldvalue={""} data-answer={word} size={word.length}  onChange={(e)=>handleChange(e)} onInput={(e)=>handleOnInput(e)} onKeyUp={(e)=>handleBackSpace(e)}  ref={(ref: HTMLInputElement) => inputsRef.current[i] = ref} className=" text-lg text-center py-0.5 block mx-1 px-0 mt-0 bg-transparent border-0 border-b-2 appearance-none focus:outline-none focus:ring-0  border-gray-200" />
+                         return <input key={word+i+props.captionIndex} type="text" maxLength={word.length} data-index={i} data-oldvalue={""} data-answer={word} size={word.length}  onChange={(e)=>handleChange(e)} onInput={(e)=>handleOnInput(e)} onKeyUp={(e)=>handleBackSpace(e)}  ref={(ref: HTMLInputElement) => inputsRef.current[i] = ref} className=" text-lg text-center py-0.5 block mx-1 px-0 mt-0 bg-transparent border-0 border-b-2 appearance-none focus:outline-none focus:ring-0  border-gray-200" />
                     }) : <></>
                 }       
             </div>

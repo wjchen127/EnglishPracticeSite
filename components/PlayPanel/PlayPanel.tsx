@@ -38,31 +38,35 @@ const PlayPanel = (props: IMyProps): ReactElement => {
                 const res = await fetch(`/api/getytcaptions/${videoID}`)
                 const result = await res.json()
                 const resultobj: ICaptionArr = JSON.parse(result)
-
                 //整理caption，讓斷在中間的句子合併成一個obj，例如 {text: this is} {text: a book.} => {text: this is a book.}
                 let start = 0
                 let duration = 0
                 let phrase = ""
                 let mergeObj = []
                 for(let i=0; i<resultobj.length; i++){
-                   if(resultobj[i].text.slice(-1) !== "."){
+                   const trimText = resultobj[i].text.replaceAll(/\n/g," ").replaceAll(/ +(?= )/g,'')
+                   if(trimText.slice(-1) !== "."){
                         //代表遇到句點後第一個斷句
                         if(phrase === ""){
                             start = resultobj[i].start
                             duration = resultobj[i].duration
-                            phrase += resultobj[i].text
+                            phrase += trimText
                         }else{
                             duration += resultobj[i].duration
-                            phrase += (" "+resultobj[i].text)
+                            phrase += (" "+trimText)
                         }
                    }else{
                         //一個完整不用剪接的句子
                         if(phrase === ""){
-                            mergeObj.push(resultobj[i])
+                            mergeObj.push({
+                                start: resultobj[i].start,
+                                duration: resultobj[i].duration,
+                                text: trimText
+                            })
                         }else{
                             //利用下一句的開頭字母是否大寫來避免句尾有"."卻不是句末的例外
-                            if(resultobj[i+1].text[0] === resultobj[i+1].text[0].toUpperCase()){
-                                phrase += (" "+resultobj[i].text)
+                            if(resultobj[i+1] && resultobj[i+1].text[0] === resultobj[i+1].text[0].toUpperCase()){
+                                phrase += (" "+trimText)
                                 duration += resultobj[i].duration
                                 mergeObj.push({
                                     text: phrase,
@@ -133,7 +137,7 @@ const PlayPanel = (props: IMyProps): ReactElement => {
                     </div>
                     <div id="typingArea">
                         {
-                            testMode ? <TypingPanel captionText={caption[currentCaptionIndex].text}/> : <TestPanel captionText={caption[currentCaptionIndex].text}/>
+                            testMode ? <TypingPanel captionText={caption[currentCaptionIndex].text} replayFunc={switchRepeat} captionIndex={currentCaptionIndex}/> : <TestPanel captionText={caption[currentCaptionIndex].text}/>
                         }
                     </div>
                 </div>
