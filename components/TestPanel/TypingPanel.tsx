@@ -74,7 +74,7 @@ const TypingPanel = (props: IMyProps): ReactElement => {
 
     return (
         <>
-            <div className="flex flex-wrap px-2">
+            <div className="flex flex-wrap px-2 justify-center">
                 {
                     inputArr ? inputArr.map((word,i)=>{
                          return <input key={word+i+props.captionIndex} type="text" maxLength={word.length} data-index={i} data-oldvalue={""} data-answer={word} size={word.length}  onChange={(e)=>handleChange(e)} onInput={(e)=>handleOnInput(e)} onKeyUp={(e)=>handleBackSpace(e)}  ref={(ref: HTMLInputElement) => inputsRef.current[i] = ref} className=" text-lg text-center py-0.5 block mx-1 px-0 mt-0 bg-transparent border-0 border-b-2 appearance-none focus:outline-none focus:ring-0  border-gray-200" />

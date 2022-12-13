@@ -42,18 +42,18 @@ const TestPanel = (props: IMyProps): ReactElement => {
 
     return(
         <>
-            <span>currentWordIndex:{currentWordIndex}</span>
+            {/* <span>currentWordIndex:{currentWordIndex}</span> */}
             <div id="displayAnswerArea">
                 <div className="flex flex-wrap justify-center my-5">
                     {
                         props.captionText.split(" ").map((word,i) => {
                             if(i < currentWordIndex){
                                 return (
-                                    <div key={i} className="text-gray-600 font-medium text-lg mx-1 border-solid  border-b-[2px] border-green-600 px-0.5"><span className="text-green-600">{word}</span></div>
+                                    <div key={i} className="text-gray-600 font-medium text-lg mx-1 border-solid  border-b-[2px] border-green-600 px-0.5"><span>{word}</span></div>
                                 )
                             }else{
                                 return (
-                                    <div key={i} className="text-gray-900 font-medium text-lg mx-1 border-solid  border-b-[2px] border-gray-900 px-0.5 dark:border-white"><span className="invisible">{word}</span></div>
+                                    <div key={i} className="text-gray-900 font-medium text-lg mx-1 border-solid  border-b-[2px] border-gray-200 px-0.5 dark:border-white"><span className="invisible">{word}</span></div>
                                 )
                             }
                         })

@@ -1,6 +1,6 @@
 import React, { ReactElement, useState, useEffect, useRef } from "react"
 import ReactPlayer from 'react-player/youtube'
-import { SkipBack, SkipForward, Repeat } from 'react-feather'
+import { SkipBack, SkipForward, Repeat, Grid, Type } from 'react-feather'
 import TestPanel from "../TestPanel/TestPanel"
 import TypingPanel from "../TestPanel/TypingPanel"
 interface IMyProps{
@@ -18,6 +18,7 @@ const PlayPanel = (props: IMyProps): ReactElement => {
     const [caption, setCaption] = useState([{text:"",start:0,duration:0}])
     const [playing, setPlaying ] = useState(false)
     const [currentCaptionIndex, setCurrentCaptionIndex] = useState(0)
+    //testMode true => 打字模式, false => 按鈕模式
     const [testMode, setTestMode] = useState(true)
     //只要切換就是要repeat，並不是開啟或關閉repeat
     const [repeat, setRepeat] = useState(true)
@@ -28,6 +29,10 @@ const PlayPanel = (props: IMyProps): ReactElement => {
         setRepeat(!repeat)
     }
     
+    function switchMode(){
+        setTestMode(!testMode)
+    }
+
     const mounted = useRef(false)
     useEffect(()=>{
         if(mounted.current === false){
@@ -122,8 +127,11 @@ const PlayPanel = (props: IMyProps): ReactElement => {
                             }/>
                         </div>
                         <div>
+                            { testMode ? <Grid onClick={switchMode}  size={24}/> : <Type onClick={switchMode}  size={24}/>}
+                        </div>
+                        <div>
                             {
-                                <Repeat onClick={()=>{switchRepeat()}} className="w-10/12"/>
+                                <Repeat onClick={()=>{switchRepeat()}} size={22}/>
                             }
                         </div>
                         <div>
