@@ -7,7 +7,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const options: Options = {
         mode: "text",
         args: [youtubeId as string],
-        scriptPath: path.resolve(process.cwd(), "helper"),
+        scriptPath: path.resolve(process.cwd(), "pages/api/getytcaptions"),
     }
     PythonShell.run("getsubfromyt.py", options, function (err: any, results: any[] | undefined) {
         if (err) throw err

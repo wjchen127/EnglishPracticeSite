@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react"
-import getCaptionFromYT from "../../helper/getcaptionfromyt"
 import YouTube from "react-youtube"
 import { SkipBack, SkipForward, Repeat, Trash2, Edit, CheckSquare } from "react-feather"
 import crypto from "crypto"
+import { URL } from 'url'
 
 interface Icaption {
     text: string
@@ -381,8 +381,17 @@ export default function MyPage(props: Iprops) {
 
 export async function getServerSideProps(context: any) {
     const { videoid } = context.params
-    const res = (await getCaptionFromYT(videoid)) as string | false
-    const result = res ? JSON.parse(res) : false
+    // console.log(context.req.headers.host)
+    // const res = (await getCaptionFromYT(videoid)) as string | false
+    // const baseUrl = process.env.BASE_URL
+    // const apiUrl = `https://localhost:3000/api/getytcaptions/${videoid}`
+    // console.log(context.req.headers)
+    const host = context.req.headers.host
+    const apiUrl = new URL(`/api/getytcaptions/${videoid}`, `https://${host}`)
+    // console.log(apiUrl.href)
+    const res: string | undefined = await fetch(apiUrl).then(res => res.json())
+    const result = res ? JSON.parse(res) : null
+    // const result = res ? JSON.parse(res) : false
     //整理caption，讓斷在中間的句子合併成一個obj，例如 {text: this is} {text: a book.} => {text: this is a book.}
     let start = 0
     let duration = 0
