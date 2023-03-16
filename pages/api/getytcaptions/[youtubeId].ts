@@ -1,15 +1,20 @@
 import type { NextApiRequest, NextApiResponse } from "next"
-const path = require("path")
-let { PythonShell } = require("python-shell")
+import path from "path"
+import { Options, PythonShell } from "python-shell"
+// const { PythonShell } = require("python-shell")
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const { youtubeId } = req.query
-    let options = {
+    const options: Options = {
         mode: "text",
-        args: youtubeId,
+        args: [youtubeId as string],
         scriptPath: path.resolve(process.cwd(), "helper"),
     }
-    PythonShell.run("getsubfromyt.py", options, function (err: any, results: any[]) {
+    PythonShell.run("getsubfromyt.py", options, function (err: any, results: any[] | undefined) {
         if (err) throw err
-        res.json(results[0])
+        if (results) {
+            res.json(results[0])
+        } else {
+            res.json([])
+        }
     })
 }
