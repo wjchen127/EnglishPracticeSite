@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react"
 import YouTube from "react-youtube"
 import { SkipBack, SkipForward, Repeat, Trash2, Edit, CheckSquare } from "react-feather"
 import crypto from "crypto"
-import { URL } from 'url'
+import { URL } from "url"
 
 interface Icaption {
     text: string
@@ -387,9 +387,9 @@ export async function getServerSideProps(context: any) {
     // const apiUrl = `https://localhost:3000/api/getytcaptions/${videoid}`
     // console.log(context.req.headers)
     const host = context.req.headers.host
-    const apiUrl = new URL(`/api/getytcaptions/${videoid}`, `https://${host}`)
+    const apiUrl = new URL(`/api/getytcaptions/${videoid}`, `http://${host}`)
     // console.log(apiUrl.href)
-    const res: string | undefined = await fetch(apiUrl).then(res => res.json())
+    const res: string | undefined = await fetch(apiUrl).then((res) => res.json())
     const result = res ? JSON.parse(res) : null
     // const result = res ? JSON.parse(res) : false
     //整理caption，讓斷在中間的句子合併成一個obj，例如 {text: this is} {text: a book.} => {text: this is a book.}
@@ -399,7 +399,7 @@ export async function getServerSideProps(context: any) {
     const mergeObj = []
     if (result) {
         for (let i = 0; i < result.length; i++) {
-            const trimText = result[i].text.replaceAll(/\n/g, " ").replaceAll(/ +(?= )/g, "")
+            const trimText = result[i].content.replaceAll(/\n/g, " ").replaceAll(/ +(?= )/g, "")
             if (trimText.slice(-1) !== ".") {
                 //代表遇到句點後第一個斷句
                 if (phrase === "") {
@@ -420,7 +420,7 @@ export async function getServerSideProps(context: any) {
                     })
                 } else {
                     //利用下一句的開頭字母是否大寫來避免句尾有"."卻不是句末的例外
-                    if (result[i + 1] && result[i + 1].text[0] === result[i + 1].text[0].toUpperCase()) {
+                    if (result[i + 1] && result[i + 1].content[0] === result[i + 1].content[0].toUpperCase()) {
                         phrase += " " + trimText
                         duration += result[i].duration
                         mergeObj.push({
