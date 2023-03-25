@@ -6,9 +6,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (youtubeId) {
         let sub
         for (let i = 0; i < lang.length; i++) {
-            sub = await getSubtitles(youtubeId as string, lang[i])
-            if (sub.length > 0) {
-                break
+            try {
+                sub = await getSubtitles(youtubeId as string, lang[i])
+                if (sub.length > 0) {
+                    break
+                }
+            } catch (e) {
+                console.log("something wrong happened!")
             }
         }
 

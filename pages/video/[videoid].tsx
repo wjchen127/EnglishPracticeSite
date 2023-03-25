@@ -48,7 +48,6 @@ export default function MyPage(props: Iprops) {
             player.seekTo(props.caption[currenIndex].start, "seconds")
             player.playVideo()
         }
-
         return () => {
             clearTimeout(timerRef.current)
         }
@@ -174,10 +173,8 @@ export default function MyPage(props: Iprops) {
 
     function changeIndex(number: number) {
         if (number === 1 && currenIndex < props.captionLen - 1) {
-            console.log("+1")
             setCurrentIndex(currenIndex + 1)
         } else if (number === -1 && currenIndex > 0) {
-            console.log("-1")
             setCurrentIndex(currenIndex - 1)
         }
     }
@@ -208,25 +205,23 @@ export default function MyPage(props: Iprops) {
         }
     }
     function saveWordsToBackEnd() {
-        //wrongWords.size > 0
-        if (false) {
+        if (wrongWords.size > 0) {
             const obj = Object.fromEntries(wrongWords)
-            console.log(obj)
             fetch("/api/save", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify(obj),
-            }).then((res) => {
-                //如果後端回傳成功，則重置wrongWords
-                if (true) {
-                    const newMap = new Map()
-                    setWrongWords(newMap)
-                }
             })
-        } else {
-            console.log("暫時關閉")
+                .then((res) => res.json())
+                .then((data) => {
+                    //如果後端回傳成功，則重置wrongWords
+                    if (data.status === "success") {
+                        const newMap = new Map()
+                        setWrongWords(newMap)
+                    }
+                })
         }
     }
     function handleModifyWord(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
@@ -246,41 +241,54 @@ export default function MyPage(props: Iprops) {
         if (tagName === "svg" || tagName === "polyline" || tagName === "path") {
             const parentNode = e.currentTarget.parentNode as HTMLDivElement | null
             if (parentNode && parentNode.dataset.key) {
-                const input = parentNode.querySelector("input:nth-child(1)") as HTMLInputElement
+                const input = parentNode.querySelector("input:nth-child(2)") as HTMLInputElement
                 const key = parentNode.dataset.key
-                // console.log(`input: ${input}`)
-                // console.log(`key: ${key}`)
-                if (input && key) {
+                const index = parentNode.dataset.index ? parseInt(parentNode.dataset.index) : null
+                if (input && key && typeof index === "number") {
+                    const inputValue = input.value
                     setWrongWords((prevState) => {
-                        console.log(prevState)
                         const newMap = new Map(prevState)
-                        const arr = Object.entries(newMap)
-                        console.log(arr)
-                        const newArr = arr.map(([oldKey, value]) => {
-                            if (oldKey === key) {
-                                return [input.value, value]
-                            } else {
-                                return [oldKey, value]
-                            }
-                        })
-                        const newObj = Object.fromEntries(newArr)
-                        console.log(newObj)
-                        return newObj
+                        const entries = Array.from(newMap.entries())
+                        const i = entries.findIndex(([_key, _value]) => _key === key)
+                        if (i !== -1) {
+                            entries.splice(i, 1, [inputValue, entries[i][1]])
+                            const newMap1 = new Map(entries)
+                            return newMap1
+                        } else {
+                            return newMap
+                        }
+                    })
+                    setWrongWordModifyIndex((prevState) => {
+                        const newSet = new Set([...prevState])
+                        newSet.delete(index)
+                        return newSet
                     })
                 }
             }
             console.log("save")
         }
     }
-    // function handleInputOnChange(e: React.ChangeEvent<HTMLInputElement>){
-
-    //     const input = e.target
-    //     if(input){
-    //         const inputValue = input.value
-    //         console.log(inputValue)
-    //         input.value = inputValue
-    //     }
-    // }
+    function handleDeleteWord(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+        const parentNode = e.currentTarget ? (e.currentTarget.parentNode as HTMLDivElement) : null
+        if (parentNode && parentNode.dataset.key) {
+            const key = parentNode.dataset.key
+            const index = parentNode.dataset.index ? parseInt(parentNode.dataset.index) : null
+            if (key && typeof index === "number") {
+                setWrongWords((prevState) => {
+                    const newMap = new Map(prevState)
+                    if (newMap.has(key)) {
+                        newMap.delete(key)
+                    }
+                    return newMap
+                })
+                setWrongWordModifyIndex((prevState) => {
+                    const newSet = new Set([...prevState])
+                    newSet.delete(index)
+                    return newSet
+                })
+            }
+        }
+    }
     return (
         <div className="flex flex-col items-center mt-[10%] absolute top-0 left-0 right-0 bottom-0">
             <div className="w-[640px]">
@@ -321,14 +329,11 @@ export default function MyPage(props: Iprops) {
             </div>
             <div className="absolute right-0 w-[300px] h-[400px]">
                 <div className="relative w-full h-full">
-                    <ul className="w-[300px] h-[400px] absolute text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-l-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white  overflow-y-auto">
+                    <ul className="w-[300px] h-[400px] absolute text-sm font-medium text-black bg-[#f7f9f9] dark:bg-[#16181c] rounded-l-lg   overflow-y-auto">
                         {wrongWords.size > 0 ? (
                             Array.from(wrongWords.keys()).map((key, i) => {
                                 return (
-                                    <li
-                                        className="w-full border-b border-gray-200 rounded-t-lg dark:border-gray-600"
-                                        key={key + i}
-                                    >
+                                    <li className="w-full border-b border-gray-200 dark:border-gray-700 rounded-t-lg"  key={wrongWordModifyIndex.has(i) ? wrongWordModifyIndex.has(i)+key+i : key+i}>
                                         <div className="flex items-center pl-3" data-index={i} data-key={key}>
                                             <input
                                                 type="checkbox"
@@ -337,23 +342,26 @@ export default function MyPage(props: Iprops) {
                                             />
                                             {wrongWordModifyIndex.has(i) ? (
                                                 <>
-                                                    <input className="my-3 ml-2 text-sm w-full" defaultValue={key} />
-                                                    <div className="w-fit h-fit mr-2 modify">
+                                                    <input
+                                                        className="my-3 ml-2 text-sm w-full bg-inherit"
+                                                        defaultValue={key}
+                                                    />
+                                                    <div className="w-fit h-fit mr-2 modify" onClick={handleSaveWord}>
                                                         <CheckSquare width={16} />
                                                     </div>
                                                 </>
                                             ) : (
                                                 <>
-                                                    <span className="w-full py-3 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                                    <span className="w-full py-3 ml-2 text-sm font-medium text-gray-900 dark:text-white">
                                                         {key}
                                                     </span>
-                                                    <div className="w-fit h-fit mr-2 modify" onClick={handleModifyWord}>
+                                                    <div className="w-fit h-fit mr-2 modify dark:text-white" onClick={handleModifyWord}>
                                                         <Edit width={16} />
                                                     </div>
                                                 </>
                                             )}
 
-                                            <div className="w-fit h-fit mr-5 delete">
+                                            <div className="w-fit h-fit mr-5 delete dark:text-white" onClick={handleDeleteWord}>
                                                 <Trash2 width={16} />
                                             </div>
                                         </div>
@@ -361,14 +369,14 @@ export default function MyPage(props: Iprops) {
                                 )
                             })
                         ) : (
-                            <h1 className="absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] text-neutral-500 text-base whitespace-nowrap">
+                            <h1 className="absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] text-neutral-500 text-base whitespace-nowrap text-black dark:text-white">
                                 Don&apos;t have any entry.
                             </h1>
                         )}
                     </ul>
                     <button
                         type="button"
-                        className=" absolute bottom-[20px] left-[50%] translate-x-[-50%] text-white bg-gradient-to-br from-pink-500 to-orange-400  focus:ring-4 focus:outline-none focus:ring-pink-200 dark:focus:ring-pink-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center "
+                        className=" absolute bottom-[20px] left-[50%] translate-x-[-50%] text-[#1d9bf0] hover:bg-[rgba(230,230,230,0.4)] dark:hover:bg-[rgba(255,255,255,0.1)] dark:border-white font-medium rounded-lg text-sm px-5 py-2.5 text-center "
                         onClick={saveWordsToBackEnd}
                     >
                         Save
@@ -381,14 +389,8 @@ export default function MyPage(props: Iprops) {
 
 export async function getServerSideProps(context: any) {
     const { videoid } = context.params
-    // console.log(context.req.headers.host)
-    // const res = (await getCaptionFromYT(videoid)) as string | false
-    // const baseUrl = process.env.BASE_URL
-    // const apiUrl = `https://localhost:3000/api/getytcaptions/${videoid}`
-    // console.log(context.req.headers)
     const host = context.req.headers.host
     const apiUrl = new URL(`/api/getytcaptions/${videoid}`, `http://${host}`)
-    // console.log(apiUrl.href)
     const res: string | undefined = await fetch(apiUrl).then((res) => res.json())
     const result = res ? JSON.parse(res) : null
     // const result = res ? JSON.parse(res) : false
