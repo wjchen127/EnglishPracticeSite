@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from "react"
 import YouTube from "react-youtube"
 import { SkipBack, SkipForward, Repeat, Trash2, Edit, CheckSquare } from "react-feather"
 import crypto from "crypto"
-import { URL } from "url"
-
+import axios from "axios"
+import { getCaptions } from "../../utils/getCaptionsFromYT"
 interface Icaption {
     text: string
     start: number
@@ -333,7 +333,14 @@ export default function MyPage(props: Iprops) {
                         {wrongWords.size > 0 ? (
                             Array.from(wrongWords.keys()).map((key, i) => {
                                 return (
-                                    <li className="w-full border-b border-gray-200 dark:border-gray-700 rounded-t-lg"  key={wrongWordModifyIndex.has(i) ? wrongWordModifyIndex.has(i)+key+i : key+i}>
+                                    <li
+                                        className="w-full border-b border-gray-200 dark:border-gray-700 rounded-t-lg"
+                                        key={
+                                            wrongWordModifyIndex.has(i)
+                                                ? wrongWordModifyIndex.has(i) + key + i
+                                                : key + i
+                                        }
+                                    >
                                         <div className="flex items-center pl-3" data-index={i} data-key={key}>
                                             <input
                                                 type="checkbox"
@@ -355,13 +362,19 @@ export default function MyPage(props: Iprops) {
                                                     <span className="w-full py-3 ml-2 text-sm font-medium text-gray-900 dark:text-white">
                                                         {key}
                                                     </span>
-                                                    <div className="w-fit h-fit mr-2 modify dark:text-white" onClick={handleModifyWord}>
+                                                    <div
+                                                        className="w-fit h-fit mr-2 modify dark:text-white"
+                                                        onClick={handleModifyWord}
+                                                    >
                                                         <Edit width={16} />
                                                     </div>
                                                 </>
                                             )}
 
-                                            <div className="w-fit h-fit mr-5 delete dark:text-white" onClick={handleDeleteWord}>
+                                            <div
+                                                className="w-fit h-fit mr-5 delete dark:text-white"
+                                                onClick={handleDeleteWord}
+                                            >
                                                 <Trash2 width={16} />
                                             </div>
                                         </div>
@@ -388,49 +401,52 @@ export default function MyPage(props: Iprops) {
 }
 
 export async function getServerSideProps(context: any) {
+    
     const { videoid } = context.params
-    const host = context.req.headers.host
-    const apiUrl = new URL(`/api/getytcaptions/${videoid}`, `http://${host}`)
-    const res: string | undefined = await fetch(apiUrl).then((res) => res.json())
-    const result = res ? JSON.parse(res) : null
-    // const result = res ? JSON.parse(res) : false
+    const result = await getCaptions(videoid)
+
     //整理caption，讓斷在中間的句子合併成一個obj，例如 {text: this is} {text: a book.} => {text: this is a book.}
-    let start = 0
-    let duration = 0
-    let phrase = ""
     const mergeObj = []
     if (result) {
+        let start = 0
+        let duration = 0
+        let phrase = ""
         for (let i = 0; i < result.length; i++) {
-            const trimText = result[i].content.replaceAll(/\n/g, " ").replaceAll(/ +(?= )/g, "")
-            if (trimText.slice(-1) !== ".") {
-                //代表遇到句點後第一個斷句
-                if (phrase === "") {
-                    start = result[i].start
-                    duration = result[i].duration
-                    phrase += trimText
-                } else {
-                    duration += result[i].duration
-                    phrase += " " + trimText
-                }
-            } else {
-                //一個完整不用剪接的句子
-                if (phrase === "") {
-                    mergeObj.push({
-                        start: result[i].start,
-                        duration: result[i].duration,
-                        text: trimText,
-                    })
-                } else {
-                    //利用下一句的開頭字母是否大寫來避免句尾有"."卻不是句末的例外
-                    if (result[i + 1] && result[i + 1].content[0] === result[i + 1].content[0].toUpperCase()) {
-                        phrase += " " + trimText
+            if (typeof result[i].content === "string") {
+                const trimText = (result[i].content as string).replaceAll(/\n/g, " ").replaceAll(/ +(?= )/g, "")
+                if (trimText.slice(-1) !== ".") {
+                    //代表遇到句點後第一個斷句
+                    if (phrase === "") {
+                        start = result[i].start
+                        duration = result[i].duration
+                        phrase += trimText
+                    } else {
                         duration += result[i].duration
+                        phrase += " " + trimText
+                    }
+                } else {
+                    //一個完整不用剪接的句子
+                    if (phrase === "") {
                         mergeObj.push({
-                            text: phrase,
-                            start: start,
-                            duration: duration,
+                            start: result[i].start,
+                            duration: result[i].duration,
+                            text: trimText,
                         })
-                        phrase = ""
+                    } else {
+                        //利用下一句的開頭字母是否大寫來避免句尾有"."卻不是句末的例外
+                        if (
+                            result[i + 1] &&
+                            (result[i + 1].content as string)[0] === (result[i + 1].content as string)[0].toUpperCase()
+                        ) {
+                            phrase += " " + trimText
+                            duration += result[i].duration
+                            mergeObj.push({
+                                text: phrase,
+                                start: start,
+                                duration: duration,
+                            })
+                            phrase = ""
+                        }
                     }
                 }
             }

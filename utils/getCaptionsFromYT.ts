@@ -1,13 +1,11 @@
-import type { NextApiRequest, NextApiResponse } from "next"
 import { getSubtitles } from "yt-subtitles"
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const { youtubeId } = req.query
+export async function getCaptions(videoId: string) {
     const lang = ["en", "en-GB"]
-    if (youtubeId) {
+    if (videoId) {
         let sub
         for (let i = 0; i < lang.length; i++) {
             try {
-                sub = await getSubtitles(youtubeId as string, lang[i])
+                sub = await getSubtitles(videoId as string, lang[i])
                 if (sub.length > 0) {
                     break
                 }
@@ -18,9 +16,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (sub && sub.length > 0) {
             // console.log(sub)
-            res.json(JSON.stringify(sub))
+            return sub
         } else {
-            res.send("nothing")
+            return false
         }
     }
 }
