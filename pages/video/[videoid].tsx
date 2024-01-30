@@ -3,7 +3,11 @@ import YouTube from "react-youtube"
 import { SkipBack, SkipForward, Repeat, Trash2, Edit, CheckSquare } from "react-feather"
 import crypto from "crypto"
 import axios from "axios"
-import { getCaptions } from "../../utils/getCaptionsFromYT"
+// import { getCaptions } from "../../utils/getCaptionsFromYT"
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import { getSubtitles } from "youtube-captions-scraper"
 interface Icaption {
     text: string
     start: number
@@ -327,9 +331,9 @@ export default function MyPage(props: Iprops) {
                         : "something went wrong"}
                 </div>
             </div>
-            <div className="absolute right-0 w-[300px] h-[400px]">
+            <div className="absolute right-0 w-[300px] h-[400px] border border-gray-200 rounded-l-lg">
                 <div className="relative w-full h-full">
-                    <ul className="w-[300px] h-[400px] absolute text-sm font-medium text-black bg-[#f7f9f9] dark:bg-[#16181c] rounded-l-lg   overflow-y-auto">
+                    <ul className="w-[300px] h-[400px] absolute text-sm font-medium text-black bg-[#f7f9f9] rounded-l-lg  dark:bg-[#16181c]  overflow-y-auto">
                         {wrongWords.size > 0 ? (
                             Array.from(wrongWords.keys()).map((key, i) => {
                                 return (
@@ -382,7 +386,7 @@ export default function MyPage(props: Iprops) {
                                 )
                             })
                         ) : (
-                            <h1 className="absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] text-neutral-500 text-base whitespace-nowrap text-black dark:text-white">
+                            <h1 className="absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] text-neutral-500 text-base whitespace-nowrap text-black  dark:text-white">
                                 Don&apos;t have any entry.
                             </h1>
                         )}
@@ -403,43 +407,45 @@ export default function MyPage(props: Iprops) {
 export async function getServerSideProps(context: any) {
     
     const { videoid } = context.params
-    const result = await getCaptions(videoid)
-
+    
     //整理caption，讓斷在中間的句子合併成一個obj，例如 {text: this is} {text: a book.} => {text: this is a book.}
-    const mergeObj = []
-    if (result) {
+    const mergeObj = [] as any[]
+    await getSubtitles({
+        videoID: videoid, // youtube video id
+        lang: 'en' // default: `en`
+    }).then((captions: Array<{ start: number; dur: number, text: string }>) => {
         let start = 0
         let duration = 0
         let phrase = ""
-        for (let i = 0; i < result.length; i++) {
-            if (typeof result[i].content === "string") {
-                const trimText = (result[i].content as string).replaceAll(/\n/g, " ").replaceAll(/ +(?= )/g, "")
+        for (let i = 0; i < captions.length; i++) {
+            if (typeof captions[i].text === "string") {
+                const trimText = (captions[i].text as string).replaceAll(/\n/g, " ").replaceAll(/ +(?= )/g, "")
                 if (trimText.slice(-1) !== ".") {
                     //代表遇到句點後第一個斷句
                     if (phrase === "") {
-                        start = result[i].start
-                        duration = result[i].duration
+                        start = captions[i].start
+                        duration = captions[i].dur
                         phrase += trimText
                     } else {
-                        duration += result[i].duration
+                        duration += captions[i].dur
                         phrase += " " + trimText
                     }
                 } else {
                     //一個完整不用剪接的句子
                     if (phrase === "") {
                         mergeObj.push({
-                            start: result[i].start,
-                            duration: result[i].duration,
+                            start: captions[i].start,
+                            duration: captions[i].dur,
                             text: trimText,
                         })
                     } else {
                         //利用下一句的開頭字母是否大寫來避免句尾有"."卻不是句末的例外
                         if (
-                            result[i + 1] &&
-                            (result[i + 1].content as string)[0] === (result[i + 1].content as string)[0].toUpperCase()
+                            captions[i + 1] &&
+                            (captions[i + 1].text as string)[0] === (captions[i + 1].text as string)[0].toUpperCase()
                         ) {
                             phrase += " " + trimText
-                            duration += result[i].duration
+                            duration += captions[i].dur
                             mergeObj.push({
                                 text: phrase,
                                 start: start,
@@ -451,8 +457,7 @@ export async function getServerSideProps(context: any) {
                 }
             }
         }
-    }
-
+    })
     return {
         props: {
             caption: mergeObj,
