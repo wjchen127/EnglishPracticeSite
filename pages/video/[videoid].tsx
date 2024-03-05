@@ -11,11 +11,10 @@ import { getSubtitles } from "youtube-captions-scraper"
 interface Icaption {
     text: string
     start: number
-    duration: number
+    dur: number
 }
 interface Iprops {
     caption: Icaption[]
-    captionLen: number
     url: string
     id: string
 }
@@ -63,7 +62,7 @@ export default function MyPage(props: Iprops) {
             const player = playerRef.current.getInternalPlayer()
             timerRef.current = setTimeout(() => {
                 player.pauseVideo()
-            }, props.caption[currenIndex].duration * 1000)
+            }, props.caption[currenIndex].dur * 1000)
         }
     }
 
@@ -176,7 +175,7 @@ export default function MyPage(props: Iprops) {
     }
 
     function changeIndex(number: number) {
-        if (number === 1 && currenIndex < props.captionLen - 1) {
+        if (number === 1 && currenIndex < props.caption.length - 1) {
             setCurrentIndex(currenIndex + 1)
         } else if (number === -1 && currenIndex > 0) {
             setCurrentIndex(currenIndex - 1)
@@ -409,59 +408,34 @@ export async function getServerSideProps(context: any) {
     const { videoid } = context.params
     
     //整理caption，讓斷在中間的句子合併成一個obj，例如 {text: this is} {text: a book.} => {text: this is a book.}
-    const mergeObj = [] as any[]
+    let mergeObj = [] as any[]
     await getSubtitles({
         videoID: videoid, // youtube video id
         lang: 'en' // default: `en`
-    }).then((captions: Array<{ start: number; dur: number, text: string }>) => {
-        let start = 0
-        let duration = 0
-        let phrase = ""
-        for (let i = 0; i < captions.length; i++) {
-            if (typeof captions[i].text === "string") {
-                const trimText = (captions[i].text as string).replaceAll(/\n/g, " ").replaceAll(/ +(?= )/g, "")
-                if (trimText.slice(-1) !== ".") {
-                    //代表遇到句點後第一個斷句
-                    if (phrase === "") {
-                        start = captions[i].start
-                        duration = captions[i].dur
-                        phrase += trimText
-                    } else {
-                        duration += captions[i].dur
-                        phrase += " " + trimText
-                    }
-                } else {
-                    //一個完整不用剪接的句子
-                    if (phrase === "") {
-                        mergeObj.push({
-                            start: captions[i].start,
-                            duration: captions[i].dur,
-                            text: trimText,
-                        })
-                    } else {
-                        //利用下一句的開頭字母是否大寫來避免句尾有"."卻不是句末的例外
-                        if (
-                            captions[i + 1] &&
-                            (captions[i + 1].text as string)[0] === (captions[i + 1].text as string)[0].toUpperCase()
-                        ) {
-                            phrase += " " + trimText
-                            duration += captions[i].dur
-                            mergeObj.push({
-                                text: phrase,
-                                start: start,
-                                duration: duration,
-                            })
-                            phrase = ""
-                        }
-                    }
+    }).then((captions: Array<{ start: any; dur: any, text: string }>) => {
+        mergeObj = captions.reduce((acc, caption) => {
+            // 去除/n 以及將 多個空格轉為一個空格
+            caption.text = caption.text.replaceAll(/\n/g, " ").replaceAll(/ +(?= )/g, "")
+            caption.start = parseInt(caption.start)
+            caption.dur = parseInt(caption.dur)
+
+            if(acc.length == 0) acc.push(caption)
+            else{
+                const prev = acc[acc.length-1]
+                if(prev.text.slice(-1) === ".") acc.push(caption)
+                else{
+                    // 上一句不是完結句，要把這一句跟上一句合併
+                    prev.dur += caption.dur
+                    prev.text += " " + caption.text
+                    acc[acc.length-1] = prev
                 }
             }
-        }
+            return acc
+        }, [] as Array<{ start: any; dur: any, text: string }>)
     })
     return {
         props: {
             caption: mergeObj,
-            captionLen: mergeObj.length,
             url: `https://www.youtube.com/watch?v=${videoid}`,
             id: videoid,
         },
